@@ -353,7 +353,6 @@ bool BasicLaserMapping::processKernel(Time const& laserOdometryTime)
                         float squaredSide2 = calcSquaredDiff(pointOnYAxis, corner);
 
                         // hard code approximate value of sqrt 3 to avoid calculation
-
                         diff = -10.0f * 1.73205080757f * sqrt(squaredSide1);
                         val = 100.0f + squaredSide1 - squaredSide2;
 
@@ -367,10 +366,16 @@ bool BasicLaserMapping::processKernel(Time const& laserOdometryTime)
                         {
                            isInLaserFOV = true;
                         }
+
+                        _mm256_storeu_pd(_corner, corner);
+
+                        corner.x = _corner[0];
+                        corner.y = _corner[1];
+                        corner.z = _corner[2];
                      }
                   }
                }
-
+               
                size_t cubeIdx = i + _laserCloudWidth * j + _laserCloudWidth * _laserCloudHeight * k;
                if (isInLaserFOV)
                {
