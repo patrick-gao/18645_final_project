@@ -289,8 +289,11 @@ bool BasicLaserMapping::processKernel(Time const& laserOdometryTime)
             {
 
                float *_center = (float *)malloc(sizeof(float) * 8 + 1);
-               float *_data1 = (float *)malloc(sizeof(float) * 8 + 1);
-               float *_data2 = (float *)malloc(sizeof(float) * 8 + 1);
+               float *_data1  = (float *)malloc(sizeof(float) * 8 + 1);
+               float *_data2  = (float *)malloc(sizeof(float) * 8 + 1);
+               float *_tmp    = (float *)malloc(sizeof(float) * 8 + 1);
+               float *_corner = (float *)malloc(sizeof(float) * 8 + 1);
+
                _data1[0] = (float)(50.0);
                _data1[1] = (float)(50.0);
                _data1[2] = (float)(50.0);
@@ -302,12 +305,14 @@ bool BasicLaserMapping::processKernel(Time const& laserOdometryTime)
                _center[0] = (float)(centerX);
                _center[1] = (float)(centerY);
                _center[2] = (float)(centerZ);
+
                __m256d center = _mm256_loadu_ps(_center);
+               __m256d data1  = _mm256_loadu_ps(_data1);
+               __m256d data2  = _mm256_loadu_ps(_data2);
+               __m256d tmp    = _mm256_loadu_ps(_tmp);
+               __m256d corner;
 
-               __m256d data1 = _mm256_loadu_ps(_data1);
-               __m256d data2 = _mm256_loadu_ps(_data2);
-
-               _mm256_fmadd_ps(center, dasta1, data2)
+               _mm256_fmadd_ps(center, dasta1, data2);
 
                // float centerX = 50.0f * (i - _laserCloudCenWidth);
                // float centerY = 50.0f * (j - _laserCloudCenHeight);
@@ -323,18 +328,35 @@ bool BasicLaserMapping::processKernel(Time const& laserOdometryTime)
                      for (int kk = -1; kk <= 1; kk += 2)
                      {
                         pcl::PointXYZI corner;
-                        corner.x = centerX + 25.0f * ii;
-                        corner.y = centerY + 25.0f * jj;
-                        corner.z = centerZ + 25.0f * kk;
+
+                        _data1[0] = (float)(25.0);
+                        _data1[1] = (float)(25.0);
+                        _data1[2] = (float)(25.0);
+
+                        _data2[0] = ii;
+                        _data2[1] = jj;
+                        _data2[2] = kk;
+
+                        tmp = _mm256_mul_ps(_data1, _data2);
+                        _corner[0] = corner.x;
+                        _corner[1] = corner.y;
+                        _corner[2] = corner.z;
+
+                        corner = _mm256_loadu_ps(_corner);
+                        corner = _mm256_add_ps(center, tmp);
+
+                        // corner.x = centerX + 25.0f * ii;
+                        // corner.y = centerY + 25.0f * jj;
+                        // corner.z = centerZ + 25.0f * kk;
 
                         float squaredSide1 = calcSquaredDiff(transform_pos, corner);
                         float squaredSide2 = calcSquaredDiff(pointOnYAxis, corner);
 
                         float check1 = 100.0f + squaredSide1 - squaredSide2
-                           - 10.0f * sqrt(3.0f) * sqrt(squaredSide1);
+                           - 10.0f * 1.73205080757f * sqrt(squaredSide1);
 
                         float check2 = 100.0f + squaredSide1 - squaredSide2
-                           + 10.0f * sqrt(3.0f) * sqrt(squaredSide1);
+                           + 10.0f * 1.73205080757f * sqrt(squaredSide1);
 
                         if (check1 < 0 && check2 > 0)
                         {
