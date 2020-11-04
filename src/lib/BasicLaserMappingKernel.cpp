@@ -288,9 +288,30 @@ bool BasicLaserMapping::processKernel(Time const& laserOdometryTime)
                 k >= 0 && k < _laserCloudDepth)
             {
 
-               float centerX = 50.0f * (i - _laserCloudCenWidth);
-               float centerY = 50.0f * (j - _laserCloudCenHeight);
-               float centerZ = 50.0f * (k - _laserCloudCenDepth);
+               float *_center = (float *)malloc(sizeof(float) * 8 + 1);
+               float *_data1 = (float *)malloc(sizeof(float) * 8 + 1);
+               float *_data2 = (float *)malloc(sizeof(float) * 8 + 1);
+               _data1[0] = (float)(50.0);
+               _data1[1] = (float)(50.0);
+               _data1[2] = (float)(50.0);
+
+               _data2[0] = (float)(_laserCloudCenWidth * -1);
+               _data2[1] = (float)(_laserCloudCenHeight * -1);
+               _data2[2] = (float)(_laserCloudCenDepth 8 -1);
+
+               _center[0] = (float)(centerX);
+               _center[1] = (float)(centerY);
+               _center[2] = (float)(centerZ);
+               __m256d center = _mm256_loadu_ps(_center);
+
+               __m256d data1 = _mm256_loadu_ps(_data1);
+               __m256d data2 = _mm256_loadu_ps(_data2);
+
+               _mm256_fmadd_ps(center, dasta1, data2)
+
+               // float centerX = 50.0f * (i - _laserCloudCenWidth);
+               // float centerY = 50.0f * (j - _laserCloudCenHeight);
+               // float centerZ = 50.0f * (k - _laserCloudCenDepth);
 
                pcl::PointXYZI transform_pos = (pcl::PointXYZI) _transformTobeMapped.pos;
 
