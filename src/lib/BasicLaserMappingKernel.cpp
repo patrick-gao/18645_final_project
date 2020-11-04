@@ -352,13 +352,18 @@ bool BasicLaserMapping::processKernel(Time const& laserOdometryTime)
                         float squaredSide1 = calcSquaredDiff(transform_pos, corner);
                         float squaredSide2 = calcSquaredDiff(pointOnYAxis, corner);
 
-                        float check1 = 100.0f + squaredSide1 - squaredSide2
-                           - 10.0f * 1.73205080757f * sqrt(squaredSide1);
+                        // hard code approximate value of sqrt 3 to avoid calculation
 
-                        float check2 = 100.0f + squaredSide1 - squaredSide2
-                           + 10.0f * 1.73205080757f * sqrt(squaredSide1);
+                        diff = -10.0f * 1.73205080757f * sqrt(squaredSide1);
+                        val = 100.0f + squaredSide1 - squaredSide2;
 
-                        if (check1 < 0 && check2 > 0)
+                        // float check1 = 100.0f + squaredSide1 - squaredSide2
+                        //    - 10.0f * 1.73205080757f * sqrt(squaredSide1);
+
+                        // float check2 = 100.0f + squaredSide1 - squaredSide2
+                        //    + 10.0f * 1.73205080757f * sqrt(squaredSide1);
+
+                              if ((val < diff) && val > -1 * diff)
                         {
                            isInLaserFOV = true;
                         }
