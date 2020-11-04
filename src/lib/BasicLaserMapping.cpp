@@ -307,7 +307,7 @@ bool BasicLaserMapping::process(Time const& laserOdometryTime)
    if (_transformTobeMapped.pos.x() + CUBE_HALF < 0) centerCubeI--;
    if (_transformTobeMapped.pos.y() + CUBE_HALF < 0) centerCubeJ--;
    if (_transformTobeMapped.pos.z() + CUBE_HALF < 0) centerCubeK--;
-
+//////
    while (centerCubeI < 3)
    {
       for (int j = 0; j < _laserCloudHeight; j++)
@@ -319,17 +319,39 @@ bool BasicLaserMapping::process(Time const& laserOdometryTime)
                const size_t indexA = toIndex(i, j, k);
                const size_t indexB = toIndex(i - 1, j, k);
                std::swap(_laserCloudCornerArray[indexA], _laserCloudCornerArray[indexB]);
-               std::swap(_laserCloudSurfArray[indexA], _laserCloudSurfArray[indexB]);
+               // std::swap(_laserCloudSurfArray[indexA], _laserCloudSurfArray[indexB]);
             }
             const size_t indexC = toIndex(0, j, k);
             _laserCloudCornerArray[indexC]->clear();
-            _laserCloudSurfArray[indexC]->clear();
+            // _laserCloudSurfArray[indexC]->clear();
          }
       }
       centerCubeI++;
       _laserCloudCenWidth++;
    }
 
+   while (centerCubeI < 3)
+   {
+      for (int j = 0; j < _laserCloudHeight; j++)
+      {
+         for (int k = 0; k < _laserCloudDepth; k++)
+         {
+            for (int i = _laserCloudWidth - 1; i >= 1; i--)
+            {
+               const size_t indexA = toIndex(i, j, k);
+               const size_t indexB = toIndex(i - 1, j, k);
+               // std::swap(_laserCloudCornerArray[indexA], _laserCloudCornerArray[indexB]);
+               std::swap(_laserCloudSurfArray[indexA], _laserCloudSurfArray[indexB]);
+            }
+            const size_t indexC = toIndex(0, j, k);
+            // _laserCloudCornerArray[indexC]->clear();
+            _laserCloudSurfArray[indexC]->clear();
+         }
+      }
+      centerCubeI++;
+      _laserCloudCenWidth++;
+   }
+//////
    while (centerCubeI >= _laserCloudWidth - 3)
    {
       for (int j = 0; j < _laserCloudHeight; j++)
