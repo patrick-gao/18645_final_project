@@ -1,4 +1,5 @@
 # loam_velodyne
+This is a final project for CMU 18645 by Patrick Gao, Weishan Wang, and Janarth Dheenadhayalan. We are attempting to achieve performance speedup through kernelization, parallelization, and other techniques. Original code is by Ji Zhang, which has been updated in this reference repo https://github.com/laboshinl/loam_velodyne.
 
 ![Screenshot](/capture.bmp)
 Sample map built from [nsh_indoor_outdoor.bag](http://www.frc.ri.cmu.edu/~jizhang03/Datasets/nsh_indoor_outdoor.bag) (opened with [ccViewer](http://www.danielgm.net/cc/))
