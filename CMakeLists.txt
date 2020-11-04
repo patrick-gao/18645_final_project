@@ -14,12 +14,6 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Eigen3 REQUIRED)
 find_package(PCL REQUIRED)
 
-include_directories(
-  include
-	${catkin_INCLUDE_DIRS} 
-	#${EIGEN3_INCLUDE_DIR}
-	${PCL_INCLUDE_DIRS})
-
 catkin_package(
   CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy std_msgs tf pcl_conversions
   DEPENDS EIGEN3 PCL
@@ -31,6 +25,20 @@ catkin_package(
 # set_property(TARGET invz_player PROPERTY CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# For profiling
+add_compile_options(-pg)
+set_directory_properties(PROPERTIES COMPILE_OPTIONS "-pg")
+set(catkin_LIBRARIES ${catkin_LIBRARIES} -pg)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+
+
+include_directories(
+  include
+	${catkin_INCLUDE_DIRS} 
+	#${EIGEN3_INCLUDE_DIR}
+	${PCL_INCLUDE_DIRS})
 
 add_definitions( -march=native )
 
