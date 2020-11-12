@@ -336,7 +336,7 @@ bool BasicLaserMapping::process(Time const& laserOdometryTime)
             }
             if (centerCubeI < 3)
             {
-               const size_t indexC = toIndex(0, j, k); // diff 2
+               const size_t indexC = toIndex(0, j, k);
             }
             if (centerCubeJ < 3)
             {
