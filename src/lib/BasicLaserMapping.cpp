@@ -439,7 +439,7 @@ bool BasicLaserMapping::process(loam::Time const& laserOdometryTime)
          std::swap(_laserCloudCornerArray[i], _laserCloudCornerArray[i + _laserCloudWidth]);
          std::swap(_laserCloudSurfArray[i], _laserCloudSurfArray[i + _laserCloudWidth]);
          
-         if (i % (_laserCloudWidth * _laserCloudHeight) > (_laserCloudWidth * (_laserCloudHeight - 1))
+         if (i % (_laserCloudWidth * _laserCloudHeight) > (_laserCloudWidth * (_laserCloudHeight - 1)))
          {
             _laserCloudCornerArray[i]->clear();
             _laserCloudSurfArray[i]->clear();
