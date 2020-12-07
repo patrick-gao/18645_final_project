@@ -13,10 +13,17 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(Eigen3 REQUIRED)
 find_package(PCL REQUIRED)
+find_package(OpenMP REQUIRED)
+find_package(OpenMP REQUIRED)
+if(OPENMP_FOUND)
+  message(STATUS "OPENMP FOUND")
+  set(OpenMP_FLAGS ${OpenMP_CXX_FLAGS})  # or if you use C: ${OpenMP_C_FLAGS}
+  set(OpenMP_LIBRARIES gomp)
+endif()
 
 catkin_package(
   CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy std_msgs tf pcl_conversions
-  DEPENDS EIGEN3 PCL
+  DEPENDS EIGEN3 PCL OpenMP
   INCLUDE_DIRS include
   LIBRARIES loam
 )
@@ -52,7 +59,7 @@ add_executable(laserOdometry src/laser_odometry_node.cpp)
 target_link_libraries(laserOdometry ${catkin_LIBRARIES} ${PCL_LIBRARIES} loam )
 
 add_executable(laserMapping src/laser_mapping_node.cpp)
-target_link_libraries(laserMapping ${catkin_LIBRARIES} ${PCL_LIBRARIES} loam )
+target_link_libraries(laserMapping ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenMP_LIBS} loam )
 
 add_executable(transformMaintenance src/transform_maintenance_node.cpp)
 target_link_libraries(transformMaintenance ${catkin_LIBRARIES} ${PCL_LIBRARIES} loam )
