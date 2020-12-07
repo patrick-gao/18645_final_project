@@ -400,46 +400,68 @@ bool BasicLaserMapping::process(loam::Time const& laserOdometryTime)
    // std::cout << "cCJ: " << centerCubeJ << ": " << _laserCloudHeight- 3 << std::endl;
    while (centerCubeJ < 3)
    {
-      // std::cout << "loop 3" << std::endl;
-      for (int i = 0; i < _laserCloudWidth; i++)
+      for (int i = laserCloudArea - 1; i >= 1; i--)
       {
-         for (int k = 0; k < _laserCloudDepth; k++)
+         std::swap(_laserCloudCornerArray[i], _laserCloudCornerArray[i - _laserCloudWidth]);
+         std::swap(_laserCloudSurfArray[i], _laserCloudSurfArray[i - _laserCloudWidth]);
+         
+         if (i % (_laserCloudWidth * _laserCloudHeight) < _laserCloudWidth)
          {
-            for (int j = _laserCloudHeight - 1; j >= 1; j--)
-            {
-               const size_t indexA = toIndex(i, j, k);
-               const size_t indexB = toIndex(i, j - 1, k);
-               std::swap(_laserCloudCornerArray[indexA], _laserCloudCornerArray[indexB]);
-               std::swap(_laserCloudSurfArray[indexA], _laserCloudSurfArray[indexB]);
-            }
-            const size_t indexC = toIndex(i, 0, k);
-            _laserCloudCornerArray[indexC]->clear();
-            _laserCloudSurfArray[indexC]->clear();
+            _laserCloudCornerArray[i]->clear();
+            _laserCloudSurfArray[i]->clear();
          }
       }
+      // std::cout << "loop 3" << std::endl;
+      // for (int i = 0; i < _laserCloudWidth; i++)
+      // {
+      //    for (int k = 0; k < _laserCloudDepth; k++)
+      //    {
+      //       for (int j = _laserCloudHeight - 1; j >= 1; j--)
+      //       {
+      //          const size_t indexA = toIndex(i, j, k);
+      //          const size_t indexB = toIndex(i, j - 1, k);
+      //          std::swap(_laserCloudCornerArray[indexA], _laserCloudCornerArray[indexB]);
+      //          std::swap(_laserCloudSurfArray[indexA], _laserCloudSurfArray[indexB]);
+      //       }
+      //       const size_t indexC = toIndex(i, 0, k);
+      //       _laserCloudCornerArray[indexC]->clear();
+      //       _laserCloudSurfArray[indexC]->clear();
+      //    }
+      // }
       centerCubeJ++;
       _laserCloudCenHeight++;
    }
 
    while (centerCubeJ >= _laserCloudHeight - 3)
    {
-      // std::cout << "loop 4" << std::endl;
-      for (int i = 0; i < _laserCloudWidth; i++)
+      for (int i = 0; i < laserCloudArea - 1; i++)
       {
-         for (int k = 0; k < _laserCloudDepth; k++)
+         std::swap(_laserCloudCornerArray[i], _laserCloudCornerArray[i + _laserCloudWidth]);
+         std::swap(_laserCloudSurfArray[i], _laserCloudSurfArray[i + _laserCloudWidth]);
+         
+         if (i % (_laserCloudWidth * _laserCloudHeight) > (_laserCloudWidth * (_laserCloudHeight - 1))
          {
-            for (int j = 0; j < _laserCloudHeight - 1; j++)
-            {
-               const size_t indexA = toIndex(i, j, k);
-               const size_t indexB = toIndex(i, j + 1, k);
-               std::swap(_laserCloudCornerArray[indexA], _laserCloudCornerArray[indexB]);
-               std::swap(_laserCloudSurfArray[indexA], _laserCloudSurfArray[indexB]);
-            }
-            const size_t indexC = toIndex(i, _laserCloudHeight - 1, k);
-            _laserCloudCornerArray[indexC]->clear();
-            _laserCloudSurfArray[indexC]->clear();
+            _laserCloudCornerArray[i]->clear();
+            _laserCloudSurfArray[i]->clear();
          }
       }
+      // std::cout << "loop 4" << std::endl;
+      // for (int i = 0; i < _laserCloudWidth; i++)
+      // {
+      //    for (int k = 0; k < _laserCloudDepth; k++)
+      //    {
+      //       for (int j = 0; j < _laserCloudHeight - 1; j++)
+      //       {
+      //          const size_t indexA = toIndex(i, j, k);
+      //          const size_t indexB = toIndex(i, j + 1, k);
+      //          std::swap(_laserCloudCornerArray[indexA], _laserCloudCornerArray[indexB]);
+      //          std::swap(_laserCloudSurfArray[indexA], _laserCloudSurfArray[indexB]);
+      //       }
+      //       const size_t indexC = toIndex(i, _laserCloudHeight - 1, k);
+      //       _laserCloudCornerArray[indexC]->clear();
+      //       _laserCloudSurfArray[indexC]->clear();
+      //    }
+      // }
       centerCubeJ--;
       _laserCloudCenHeight--;
    }
