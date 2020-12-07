@@ -316,6 +316,14 @@ bool BasicLaserMapping::process(loam::Time const& laserOdometryTime)
    if (_transformTobeMapped.pos.y() + CUBE_HALF < 0) centerCubeJ--;
    if (_transformTobeMapped.pos.z() + CUBE_HALF < 0) centerCubeK--;
    // std::cout << "cCI: " << centerCubeI << ": " << _laserCloudWidth - 3 << std::endl;
+   
+   // These loops are not always entered, appears to be used to adjust point cloud arrays for next step ===========================
+   // Essentially moves center of cube to within 3 of laserCloud bounds in ijk dimensions
+   // Of the six loops, a max of 3 loops are actually executed, but most likely less
+   // i.e. max runtime of this section is 
+   // 3 * max(laserCloudWidth, laserCloudHeight, laserCloudDepth) * laserCloudWidth * laserCloudHeight * laserCloudDepth * gamma
+   //      gamma is cost of std::swap(PointXYZI, PointXYZI) * 2
+   // No opportunity to efficiently use SIMD instructions, since swaps are for object pointers, not values
    while (centerCubeI < 3)
    {
       // std::cout << "loop 1" << std::endl;
@@ -455,12 +463,14 @@ bool BasicLaserMapping::process(loam::Time const& laserOdometryTime)
       centerCubeK--;
       _laserCloudCenDepth--;
    }
+   // =============================================================================================================================
 
    _laserCloudValidInd.clear();
    _laserCloudSurroundInd.clear();
 
    size_t k_offset = _laserCloudWidth * _laserCloudHeight;
 
+   // for 5x5x5 iteration space
    for (int i = centerCubeI - 2; i <= centerCubeI + 2; i++)
    {
 
@@ -480,38 +490,133 @@ bool BasicLaserMapping::process(loam::Time const& laserOdometryTime)
                {
                   if (k >= 0 && k < _laserCloudDepth)
                   {
+                     // for each iter in 5x5x5 cube around center
                      float centerZ = 50.0f * (k - _laserCloudCenDepth);
 
                      pcl::PointXYZI transform_pos = (pcl::PointXYZI)_transformTobeMapped.pos;
 
+                     // loop unrolled
+                     // Previous loop bounds were complicated, but optimized number of times sqrt() is called
+                     // This removes loop bounds but increases number of times sqrt() is called
                      bool isInLaserFOV = false;
                      pcl::PointXYZI corner;
-                     for (int ii = -1; ii <= 1 && !isInLaserFOV; ii += 2)
+                     float squaredSide1;
+                     float squaredSide2;
+                     float val1;
+                     float val2;
+                     // +++
+                     corner.x = centerX + CUBE_HALF;
+                     corner.y = centerY + CUBE_HALF;
+                     corner.z = centerZ + CUBE_HALF;
+                     squaredSide1 = calcSquaredDiff(transform_pos, corner);
+                     squaredSide2 = calcSquaredDiff(pointOnYAxis, corner);
+                     val1 = 100.0f + squaredSide1 - squaredSide2;
+                     val2 = 10.0f * sqrt(3.0f) * sqrt(squaredSide1);
+                     if (((val1 - val2) < 0) && ((val1 + val2) > 0))
                      {
-                        corner.x = centerX + 25.0f * ii;
-
-                        for (int jj = -1; jj <= 1 && !isInLaserFOV; jj += 2)
-                        {
-                           corner.y = centerY + 25.0f * jj;
-
-                           for (int kk = -1; kk <= 1 && !isInLaserFOV; kk += 2)
-                           {
-                              corner.z = centerZ + 25.0f * kk;
-
-                              float squaredSide1 = calcSquaredDiff(transform_pos, corner);
-                              float squaredSide2 = calcSquaredDiff(pointOnYAxis, corner);
-
-                              float val1 = 100.0f + squaredSide1 - squaredSide2;
-                              float val2 = 10.0f * sqrt(3.0f) * sqrt(squaredSide1);
-
-                              if (((val1 - val2) < 0) && ((val1 + val2) > 0))
-                              {
-                                 isInLaserFOV = true;
-                              }
-                           }
-                        }
+                        isInLaserFOV = true;
                      }
+                     // ++-
+                     corner.z = centerZ - CUBE_HALF;
+                     squaredSide1 = calcSquaredDiff(transform_pos, corner);
+                     squaredSide2 = calcSquaredDiff(pointOnYAxis, corner);
+                     val1 = 100.0f + squaredSide1 - squaredSide2;
+                     val2 = 10.0f * sqrt(3.0f) * sqrt(squaredSide1);
+                     if (((val1 - val2) < 0) && ((val1 + val2) > 0))
+                     {
+                        isInLaserFOV = true;
+                     }
+                     // +--
+                     corner.y = centerY - CUBE_HALF;
+                     squaredSide1 = calcSquaredDiff(transform_pos, corner);
+                     squaredSide2 = calcSquaredDiff(pointOnYAxis, corner);
+                     val1 = 100.0f + squaredSide1 - squaredSide2;
+                     val2 = 10.0f * sqrt(3.0f) * sqrt(squaredSide1);
+                     if (((val1 - val2) < 0) && ((val1 + val2) > 0))
+                     {
+                        isInLaserFOV = true;
+                     }
+                     // ---
+                     corner.x = centerX - CUBE_HALF;
+                     squaredSide1 = calcSquaredDiff(transform_pos, corner);
+                     squaredSide2 = calcSquaredDiff(pointOnYAxis, corner);
+                     val1 = 100.0f + squaredSide1 - squaredSide2;
+                     val2 = 10.0f * sqrt(3.0f) * sqrt(squaredSide1);
+                     if (((val1 - val2) < 0) && ((val1 + val2) > 0))
+                     {
+                        isInLaserFOV = true;
+                     }
+                     // --+
+                     corner.z = centerZ + CUBE_HALF;
+                     squaredSide1 = calcSquaredDiff(transform_pos, corner);
+                     squaredSide2 = calcSquaredDiff(pointOnYAxis, corner);
+                     val1 = 100.0f + squaredSide1 - squaredSide2;
+                     val2 = 10.0f * sqrt(3.0f) * sqrt(squaredSide1);
+                     if (((val1 - val2) < 0) && ((val1 + val2) > 0))
+                     {
+                        isInLaserFOV = true;
+                     }
+                     // -++
+                     corner.y = centerY + CUBE_HALF;
+                     squaredSide1 = calcSquaredDiff(transform_pos, corner);
+                     squaredSide2 = calcSquaredDiff(pointOnYAxis, corner);
+                     val1 = 100.0f + squaredSide1 - squaredSide2;
+                     val2 = 10.0f * sqrt(3.0f) * sqrt(squaredSide1);
+                     if (((val1 - val2) < 0) && ((val1 + val2) > 0))
+                     {
+                        isInLaserFOV = true;
+                     }
+                     // -+-
+                     corner.z = centerZ - CUBE_HALF;
+                     squaredSide1 = calcSquaredDiff(transform_pos, corner);
+                     squaredSide2 = calcSquaredDiff(pointOnYAxis, corner);
+                     val1 = 100.0f + squaredSide1 - squaredSide2;
+                     val2 = 10.0f * sqrt(3.0f) * sqrt(squaredSide1);
+                     if (((val1 - val2) < 0) && ((val1 + val2) > 0))
+                     {
+                        isInLaserFOV = true;
+                     }
+                     // +-+
+                     corner.x = centerX + CUBE_HALF;
+                     corner.y = centerY - CUBE_HALF;
+                     corner.z = centerZ + CUBE_HALF;
+                     squaredSide1 = calcSquaredDiff(transform_pos, corner);
+                     squaredSide2 = calcSquaredDiff(pointOnYAxis, corner);
+                     val1 = 100.0f + squaredSide1 - squaredSide2;
+                     val2 = 10.0f * sqrt(3.0f) * sqrt(squaredSide1);
+                     if (((val1 - val2) < 0) && ((val1 + val2) > 0))
+                     {
+                        isInLaserFOV = true;
+                     }
+                     // for (int ii = -1; ii <= 1 && !isInLaserFOV; ii += 2)
+                     // {
+                     //    corner.x = centerX + 25.0f * ii;
 
+                     //    for (int jj = -1; jj <= 1 && !isInLaserFOV; jj += 2)
+                     //    {
+                     //       corner.y = centerY + 25.0f * jj;
+
+                     //       for (int kk = -1; kk <= 1 && !isInLaserFOV; kk += 2)
+                     //       {
+                     //          // for 3x3x3 iteration space
+                     //          // iterate until point is in laserFOV
+                     //          corner.z = centerZ + 25.0f * kk;
+
+                     //          float squaredSide1 = calcSquaredDiff(transform_pos, corner);
+                     //          float squaredSide2 = calcSquaredDiff(pointOnYAxis, corner);
+
+                     //          float val1 = 100.0f + squaredSide1 - squaredSide2;
+                     //          float val2 = 10.0f * sqrt(3.0f) * sqrt(squaredSide1);
+
+                     //          if (((val1 - val2) < 0) && ((val1 + val2) > 0))
+                     //          {
+                     //             isInLaserFOV = true;
+                     //          }
+                     //       }
+                     //    }
+                     // }
+
+                     // then push back cude into laserCloudValidInd
                      size_t cubeIdx = i + j_offset + k_offset * k;
                      if (isInLaserFOV)
                      {
@@ -563,6 +668,7 @@ bool BasicLaserMapping::process(loam::Time const& laserOdometryTime)
    {
       pointAssociateToMap(_laserCloudCornerStackDS->points[i], pointSel);
 
+      // split if condition
       int cubeI = int((pointSel.x + CUBE_HALF) / CUBE_SIZE) + _laserCloudCenWidth;
       if (pointSel.x + CUBE_HALF < 0)
          cubeI--;
@@ -584,7 +690,6 @@ bool BasicLaserMapping::process(loam::Time const& laserOdometryTime)
          cubeK--;
       if (cubeK >= 0 && cubeK < _laserCloudDepth)
       {
-
          size_t cubeInd = cubeI + _laserCloudWidth * cubeJ + k_offset * cubeK;
          _laserCloudCornerArray[cubeInd]->push_back(pointSel);
       }
@@ -595,6 +700,7 @@ bool BasicLaserMapping::process(loam::Time const& laserOdometryTime)
    {
       pointAssociateToMap(_laserCloudSurfStackDS->points[i], pointSel);
 
+      // split if condition
       int cubeI = int((pointSel.x + CUBE_HALF) / CUBE_SIZE) + _laserCloudCenWidth;
       if (pointSel.x + CUBE_HALF < 0)
          cubeI--;
@@ -712,7 +818,7 @@ void BasicLaserMapping::optimizeTransformTobeMapped()
    size_t laserCloudSurfStackNum = _laserCloudSurfStackDS->size();
 
    // std::cout << "maxIterations: " << _maxIterations << " laserCloudCornerStackNum: " << laserCloudCornerStackNum << std::endl;
-   #pragma omp parallel for num_threads(10) // can't use breaks with omp
+   // #pragma omp parallel for num_threads(10) // can't use breaks with omp
    for (size_t iterCount = 0; iterCount < _maxIterations; iterCount++)
    {
       _laserCloudOri.clear();
