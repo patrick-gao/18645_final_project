@@ -588,34 +588,7 @@ bool BasicLaserMapping::process(loam::Time const& laserOdometryTime)
                      {
                         isInLaserFOV = true;
                      }
-                     // for (int ii = -1; ii <= 1 && !isInLaserFOV; ii += 2)
-                     // {
-                     //    corner.x = centerX + 25.0f * ii;
-
-                     //    for (int jj = -1; jj <= 1 && !isInLaserFOV; jj += 2)
-                     //    {
-                     //       corner.y = centerY + 25.0f * jj;
-
-                     //       for (int kk = -1; kk <= 1 && !isInLaserFOV; kk += 2)
-                     //       {
-                     //          // for 3x3x3 iteration space
-                     //          // iterate until point is in laserFOV
-                     //          corner.z = centerZ + 25.0f * kk;
-
-                     //          float squaredSide1 = calcSquaredDiff(transform_pos, corner);
-                     //          float squaredSide2 = calcSquaredDiff(pointOnYAxis, corner);
-
-                     //          float val1 = 100.0f + squaredSide1 - squaredSide2;
-                     //          float val2 = 10.0f * sqrt(3.0f) * sqrt(squaredSide1);
-
-                     //          if (((val1 - val2) < 0) && ((val1 + val2) > 0))
-                     //          {
-                     //             isInLaserFOV = true;
-                     //          }
-                     //       }
-                     //    }
-                     // }
-
+                     
                      // then push back cude into laserCloudValidInd
                      size_t cubeIdx = i + j_offset + k_offset * k;
                      if (isInLaserFOV)
@@ -640,9 +613,13 @@ bool BasicLaserMapping::process(loam::Time const& laserOdometryTime)
    }
 
    // prepare feature stack clouds for pose optimization
+   // each iteration has approximately same runtime, so schedule statically
+   #pragma omp parallel for schedule(static) 
    for (auto &pt : *_laserCloudCornerStack)
       pointAssociateTobeMapped(pt, pt);
 
+   // each iteration has approximately same runtime, so schedule statically
+   #pragma omp parallel for schedule(static)
    for (auto &pt : *_laserCloudSurfStack)
       pointAssociateTobeMapped(pt, pt);
 
@@ -664,6 +641,7 @@ bool BasicLaserMapping::process(loam::Time const& laserOdometryTime)
    optimizeTransformTobeMapped();
 
    // store down sized corner stack points in corresponding cube clouds
+   #pragma omp parallel for schedule(static)
    for (int i = 0; i < laserCloudCornerStackNum; i++)
    {
       pointAssociateToMap(_laserCloudCornerStackDS->points[i], pointSel);
@@ -691,11 +669,13 @@ bool BasicLaserMapping::process(loam::Time const& laserOdometryTime)
       if (cubeK >= 0 && cubeK < _laserCloudDepth)
       {
          size_t cubeInd = cubeI + _laserCloudWidth * cubeJ + k_offset * cubeK;
+         #pragma omp critical // ordered
          _laserCloudCornerArray[cubeInd]->push_back(pointSel);
       }
    }
 
    // store down sized surface stack points in corresponding cube clouds
+   #pragma omp parallel for schedule(static)
    for (int i = 0; i < laserCloudSurfStackNum; i++)
    {
       pointAssociateToMap(_laserCloudSurfStackDS->points[i], pointSel);
@@ -723,6 +703,7 @@ bool BasicLaserMapping::process(loam::Time const& laserOdometryTime)
       if (cubeK >= 0 && cubeK < _laserCloudDepth)
       {
          size_t cubeInd = cubeI + _laserCloudWidth * cubeJ + k_offset * cubeK;
+         #pragma omp critical // ordered
          _laserCloudSurfArray[cubeInd]->push_back(pointSel);
       }
    }
