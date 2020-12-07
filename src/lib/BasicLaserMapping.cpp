@@ -323,7 +323,7 @@ bool BasicLaserMapping::process(loam::Time const& laserOdometryTime)
    // i.e. max runtime of this section is 
    // 3 * max(laserCloudWidth, laserCloudHeight, laserCloudDepth) * laserCloudWidth * laserCloudHeight * laserCloudDepth * gamma
    //      gamma is cost of std::swap(PointXYZI, PointXYZI) * 2
-   // No opportunity to efficiently use SIMD instructions, since swaps are for object pointers, not values
+   // No opportunity to efficiently use SIMD instructions, since swaps are for object, not values
    while (centerCubeI < 3)
    {
       // std::cout << "loop 1" << std::endl;
@@ -471,6 +471,7 @@ bool BasicLaserMapping::process(loam::Time const& laserOdometryTime)
    size_t k_offset = _laserCloudWidth * _laserCloudHeight;
 
    // for 5x5x5 iteration space
+   #pragma omp parallel for schedule(static)
    for (int i = centerCubeI - 2; i <= centerCubeI + 2; i++)
    {
 
@@ -591,10 +592,13 @@ bool BasicLaserMapping::process(loam::Time const& laserOdometryTime)
                      
                      // then push back cude into laserCloudValidInd
                      size_t cubeIdx = i + j_offset + k_offset * k;
+                     
                      if (isInLaserFOV)
                      {
+                        #pragma omp critical
                         _laserCloudValidInd.push_back(cubeIdx);
                      }
+                     #pragma omp critical
                      _laserCloudSurroundInd.push_back(cubeIdx);
                   } // k_true
                }
